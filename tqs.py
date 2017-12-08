@@ -147,11 +147,12 @@ class QueueHandler(BaseHandler):
 
     def prepare(self):
         super().prepare()
-        c = self.application.db.cursor()
-        c.execute("select id, name from queues where name = ?", [self.path_args[0]])
-        self.queue = c.fetchone()
-        if not self.queue:
-            self.send_error(404)
+        with self.application.db as db:
+            c = db.cursor()
+            c.execute("select id, name from queues where name = ?", [self.path_args[0]])
+            self.queue = c.fetchone()
+            if not self.queue:
+                self.send_error(404)
 
     def get(self, queue_name):
         with self.application.db:
@@ -257,11 +258,12 @@ class LeasesHandler(BaseHandler):
 
     def prepare(self):
         super().prepare()
-        c = self.application.db.cursor()
-        c.execute("select id, name from queues where name = ?", (self.path_args[0],))
-        self.queue = c.fetchone()
-        if not self.queue:
-            self.send_error(404)
+        with self.application.db as db:
+            c = db.cursor()
+            c.execute("select id, name from queues where name = ?", (self.path_args[0],))
+            self.queue = c.fetchone()
+            if not self.queue:
+                self.send_error(404)
 
     def delete(self, queue_name, lease_uuid):
         with self.application.db as db:
