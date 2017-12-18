@@ -2,7 +2,7 @@
 
 *Stefan Arentz, December 2017*
 
-[![Build Status](https://travis-ci.org/st3fan/tqs-server.svg?branch=master)](https://travis-ci.org/st3fan/tqs-server) [![codecov](https://codecov.io/gh/st3fan/tqs-server/branch/master/graph/badge.svg)](https://codecov.io/gh/st3fan/tqs-server)
+[![Build Status](https://travis-ci.org/st3fan/tqs-server.svg?branch=master)](https://travis-ci.org/st3fan/tqs-server) [![codecov](https://codecov.io/gh/st3fan/tqs-server/branch/master/graph/badge.svg)](https://codecov.io/gh/st3fan/tqs-server) [![Lintly](https://lintly.com/gh/st3fan/tqs-server/badge.svg)](https://lintly.com/gh/st3fan/tqs-server/)
 
 
 
