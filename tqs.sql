@@ -37,3 +37,5 @@ CREATE INDEX IF NOT EXISTS messages_create_date ON messages (create_date);
 CREATE INDEX IF NOT EXISTS messages_lease_date ON messages (lease_date);
 CREATE UNIQUE INDEX IF NOT EXISTS messages_lease_uuid ON messages (lease_uuid);
 CREATE INDEX IF NOT EXISTS messages_queue_id_lease_date_create_date ON messages (queue_id, lease_date, create_date);
+CREATE INDEX IF NOT EXISTS messages_queue_id_lease_uuid ON messages (queue_id, lease_uuid);
+
