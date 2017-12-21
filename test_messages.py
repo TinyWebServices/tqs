@@ -133,7 +133,6 @@ def test_message_retention(http_client, base_url):
     assert len(j["messages"]) == 0
 
 
-# This gives a timeout .. how to handle the sleep(30)?
 @pytest.mark.gen_test(timeout=45)
 def test_visibility_timeout(http_client, base_url):
     # Create a queue
@@ -159,6 +158,32 @@ def test_visibility_timeout(http_client, base_url):
     assert response.code == 200
     j = json.loads(response.body.decode())
     assert len(j["messages"]) == 1
+
+@pytest.mark.gen_test(timeout=45)
+def test_message_delete_immediately(http_client, base_url, app):
+    # Create a queue
+    response = yield http_client.fetch(base_url + "/queues", raise_error=False, method="POST", body=json.dumps({"name": "test"}))
+    assert response.code == 200
+    # Put a message in it
+    response = yield http_client.fetch(base_url + "/queues/test", raise_error=False, method="POST", body=json.dumps({"messages": [{"body": "cheese"}]}))
+    assert response.code == 200
+    # Get a message
+    response = yield http_client.fetch(base_url + "/queues/test?delete=1", raise_error=False, method="GET")
+    assert response.code == 200
+    j = json.loads(response.body.decode())
+    assert len(j["messages"]) == 1
+    # Get a message again
+    response = yield http_client.fetch(base_url + "/queues/test", raise_error=False, method="GET")
+    assert response.code == 200
+    j = json.loads(response.body.decode())
+    assert len(j["messages"]) == 0
+    # Let the lease expire
+    yield tornado.gen.sleep(tqs.DEFAULT_VISIBILITY_TIMEOUT + 1)
+    # Get a message again - should not be there, even though we did not delete the lease
+    response = yield http_client.fetch(base_url + "/queues/test", raise_error=False, method="GET")
+    assert response.code == 200
+    j = json.loads(response.body.decode())
+    assert len(j["messages"]) == 0
 
 
 @pytest.mark.gen_test(timeout=10)

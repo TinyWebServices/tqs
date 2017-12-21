@@ -64,6 +64,12 @@ def validate_message_body(v):
     return type(v) == str and len(v) <= MAX_BODY_LEN
 
 
+DEFAULT_DELETE = False
+
+def validate_delete(v):
+    return v in (1, "true", "yes")
+
+
 #
 # HomeHandler
 #
@@ -159,6 +165,7 @@ class QueueHandler(BaseHandler):
             c = self.application.db.cursor()
 
             # Parse parameters (message_count, visibility_timeout)
+            delete = self.get_argument("delete", DEFAULT_DELETE)
             message_count = min(int(self.get_argument("message_count", DEFAULT_MESSAGE_COUNT)), MAX_MESSAGE_COUNT)
             visibility_timeout = min(int(self.get_argument("visibilty_timeout", DEFAULT_VISIBILITY_TIMEOUT)), MAX_VISIBILITY_TIMEOUT)
 
@@ -172,11 +179,14 @@ class QueueHandler(BaseHandler):
                 return
             message_ids = [row["id"] for row in rows]
 
+
+
             # Update the lease for these messages
-            for message_id in message_ids:
-                lease_uuid = str(uuid.uuid4())
-                c.execute("update messages set lease_date = ?, lease_uuid = ?, lease_timeout = ? where id = ?",
-                          [time.time(), lease_uuid, visibility_timeout, message_id])
+            if not delete:
+                for message_id in message_ids:
+                    lease_uuid = str(uuid.uuid4())
+                    c.execute("update messages set lease_date = ?, lease_uuid = ?, lease_timeout = ? where id = ?",
+                              [time.time(), lease_uuid, visibility_timeout, message_id])
 
             # Return messages
             c.execute("select id, create_date, body, lease_date, expire_date, lease_uuid, lease_timeout from messages where id in (%s)" % ",".join("?" * len(message_ids)), message_ids)
@@ -189,6 +199,10 @@ class QueueHandler(BaseHandler):
                          "lease_uuid": message["lease_uuid"],
                          "lease_timeout": message["lease_timeout"]}
                         for message in c.fetchall()]
+
+            if delete:
+                c.execute("delete from messages where id in (%s)" % ",".join("?" * len(message_ids)), message_ids)
+
             self.write({"messages": messages})
 
     #
