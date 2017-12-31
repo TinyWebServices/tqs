@@ -58,7 +58,7 @@ def validate_message_count(v):
     return type(v) == int and v >= MIN_MESSAGE_COUNT and v <= MAX_MESSAGE_COUNT
 
 
-MAX_BODY_LEN = 1024
+MAX_BODY_LEN = 4096
 
 def validate_message_body(v):
     return type(v) == str and len(v) <= MAX_BODY_LEN
