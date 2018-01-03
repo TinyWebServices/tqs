@@ -74,7 +74,7 @@ def validate_message_type(v):
 DEFAULT_DELETE = False
 
 def validate_delete(v):
-    return v in (1, "true", "yes")
+    return v in ("1", "true", "yes")
 
 
 #
@@ -172,7 +172,7 @@ class QueueHandler(BaseHandler):
             c = self.application.db.cursor()
 
             # Parse parameters (message_count, visibility_timeout)
-            delete = self.get_argument("delete", DEFAULT_DELETE)
+            delete = self.get_argument("delete", DEFAULT_DELETE) # TODO Why do we have validate_delete?
             message_count = min(int(self.get_argument("message_count", DEFAULT_MESSAGE_COUNT)), MAX_MESSAGE_COUNT)
             visibility_timeout = min(int(self.get_argument("visibilty_timeout", DEFAULT_VISIBILITY_TIMEOUT)), MAX_VISIBILITY_TIMEOUT)
 
@@ -196,19 +196,27 @@ class QueueHandler(BaseHandler):
                               [time.time(), lease_uuid, visibility_timeout, message_id])
 
             # Return messages
-            c.execute("select id, create_date, body, type, lease_date, expire_date, lease_uuid, lease_timeout from messages where id in (%s)" % ",".join("?" * len(message_ids)), message_ids)
-            messages = [{"id": message["id"],
-                         "create_date": message["create_date"],
-                         "visible_date": message["create_date"],
-                         "expire_date": message["expire_date"],
-                         "body": message["body"],
-                         "type": message["type"],
-                         "lease_date": message["lease_date"],
-                         "lease_uuid": message["lease_uuid"],
-                         "lease_timeout": message["lease_timeout"]}
-                        for message in c.fetchall()]
-
-            if delete:
+            if not delete:
+                c.execute("select id, create_date, body, type, lease_date, expire_date, lease_uuid, lease_timeout from messages where id in (%s)" % ",".join("?" * len(message_ids)), message_ids)
+                messages = [{"id": message["id"],
+                             "create_date": message["create_date"],
+                             "visible_date": message["create_date"],
+                             "expire_date": message["expire_date"],
+                             "body": message["body"],
+                             "type": message["type"],
+                             "lease_date": message["lease_date"],
+                             "lease_uuid": message["lease_uuid"],
+                             "lease_timeout": message["lease_timeout"]}
+                            for message in c.fetchall()]
+            else:
+                c.execute("select id, create_date, body, type, expire_date from messages where id in (%s)" % ",".join("?" * len(message_ids)), message_ids)
+                messages = [{"id": message["id"],
+                             "create_date": message["create_date"],
+                             "visible_date": message["create_date"],
+                             "expire_date": message["expire_date"],
+                             "body": message["body"],
+                             "type": message["type"]}
+                            for message in c.fetchall()]
                 c.execute("delete from messages where id in (%s)" % ",".join("?" * len(message_ids)), message_ids)
 
             self.write({"messages": messages})
