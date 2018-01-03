@@ -64,6 +64,13 @@ def validate_message_body(v):
     return type(v) == str and len(v) <= MAX_BODY_LEN
 
 
+DEFAULT_BODY_TYPE = "text/plain"
+VALID_BODY_TYPES = ["text/plain", "application/json", "application/octet-stream"]
+
+def validate_message_type(v):
+    return type(v) == str and v in VALID_BODY_TYPES
+
+
 DEFAULT_DELETE = False
 
 def validate_delete(v):
@@ -189,12 +196,13 @@ class QueueHandler(BaseHandler):
                               [time.time(), lease_uuid, visibility_timeout, message_id])
 
             # Return messages
-            c.execute("select id, create_date, body, lease_date, expire_date, lease_uuid, lease_timeout from messages where id in (%s)" % ",".join("?" * len(message_ids)), message_ids)
+            c.execute("select id, create_date, body, type, lease_date, expire_date, lease_uuid, lease_timeout from messages where id in (%s)" % ",".join("?" * len(message_ids)), message_ids)
             messages = [{"id": message["id"],
                          "create_date": message["create_date"],
                          "visible_date": message["create_date"],
                          "expire_date": message["expire_date"],
                          "body": message["body"],
+                         "type": message["type"],
                          "lease_date": message["lease_date"],
                          "lease_uuid": message["lease_uuid"],
                          "lease_timeout": message["lease_timeout"]}
@@ -226,6 +234,10 @@ class QueueHandler(BaseHandler):
                     if "body" not in message or type(message["body"]) != str or not validate_message_body(message["body"]):
                         self.send_error(400) # TODO Explain
                         return
+                    if "type" in message:
+                        if type(message["type"]) != str or not validate_message_type(message["type"]):
+                            self.send_error(400) # TODO Explain
+                            return
                     if "delay" in message and not validate_message_delay(message["delay"]):
                         self.send_error(400) # TODO Explain
                         return
@@ -246,8 +258,8 @@ class QueueHandler(BaseHandler):
                 now = time.time()
                 delay = message.get("delay", DEFAULT_MESSAGE_DELAY)
                 retention = message.get("retention", DEFAULT_MESSAGE_RETENTION)
-                db.execute("insert into messages (create_date, visible_date, expire_date, queue_id, body) values (?, ?, ?, ?, ?)",
-                           [now, now + delay, now + retention, self.queue["id"], message["body"]])
+                db.execute("insert into messages (create_date, visible_date, expire_date, queue_id, body, type) values (?, ?, ?, ?, ?, ?)",
+                           [now, now + delay, now + retention, self.queue["id"], message["body"], message.get("type", DEFAULT_BODY_TYPE)])
 
             # Increment the count
             db.execute("update queues set insert_count = insert_count + ? where id = ?", [len(data["messages"]), self.queue["id"]])

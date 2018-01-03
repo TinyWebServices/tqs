@@ -197,6 +197,26 @@ def test_message_body_types(http_client, base_url, app):
         response = yield http_client.fetch(base_url + "/queues/test", raise_error=False, method="POST", body=json.dumps({"messages": [{"body": body}]}))
         assert response.code == 400
 
+@pytest.mark.gen_test(timeout=10)
+def test_message_body_type(http_client, base_url, app):
+    for i, body_type in enumerate(tqs.VALID_BODY_TYPES):
+        # Create a queue
+        response = yield http_client.fetch(f"{base_url}/queues", raise_error=False, method="POST",
+                                           body=json.dumps({"name": f"test{i}"}))
+        assert response.code == 200
+        # Put a message in it
+        response = yield http_client.fetch(f"{base_url}/queues/test{i}", raise_error=False, method="POST",
+                                           body=json.dumps({"messages": [{"body": "cheese", "type": body_type}]}))
+        assert response.code == 200
+        # Get a message
+        response = yield http_client.fetch(f"{base_url}/queues/test{i}", raise_error=False, method="GET")
+        assert response.code == 200
+        j = json.loads(response.body.decode())
+        print(j)
+        assert len(j["messages"]) == 1
+        assert j["messages"][0]["body"] == "cheese"
+        assert j["messages"][0]["type"] == body_type
+
 
 @pytest.mark.gen_test(timeout=10)
 def test_message_body_encoding(http_client, base_url, app):

@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS messages (
   visible_date REAL NOT NULL,
   expire_date REAL NOT NULL,
   body TEXT not null,
+  type TEXT not null,
   lease_date REAL,
   lease_uuid TEXT UNIQUE,
   lease_timeout INTEGER,
