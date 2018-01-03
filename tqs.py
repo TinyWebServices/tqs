@@ -52,7 +52,7 @@ def validate_message_retention(v):
 
 DEFAULT_MESSAGE_COUNT = 1
 MIN_MESSAGE_COUNT = 1
-MAX_MESSAGE_COUNT = 10
+MAX_MESSAGE_COUNT = 100
 
 def validate_message_count(v):
     return type(v) == int and v >= MIN_MESSAGE_COUNT and v <= MAX_MESSAGE_COUNT
