@@ -357,7 +357,7 @@ if __name__ == "__main__":
     server.listen(options.port)
 
     # These do not have to be super accurate
-    #PeriodicCallback(ExpireLeasesCallback(db), 1000).start()
-    PeriodicCallback(ExpireMessagesCallback(db), 5000).start()
+    PeriodicCallback(ExpireLeasesCallback(db), 2500).start()
+    PeriodicCallback(ExpireMessagesCallback(db), 15000).start()
 
     IOLoop.current().start()
