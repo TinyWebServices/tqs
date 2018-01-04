@@ -12,15 +12,14 @@ modest performance that you can self host.
 If the following sounds good to you then this project may be
 compatible with your needs:
 
-* Easy to deploy via Docker
-* Handles 100s of queue operations per second
+* Very easy to deploy via Docker
+* Most operations take a few milliseconds on modest hardware, so a single instance can usually handle hundreds of queue operations per second
 * Simple REST API that lets you GET and POST messages
-* Inspired by Amazon's Simple Queue Service
 * (Optional) Simple authentication via pre configured API keys
 * Zero configuration. Run and go.
 * No broker topology, no redundancy, no enterprise features.
 
-This project is inspired by Redis and Amazon's Simple Queue Service.
+This project was inspired by Redis and Amazon's Simple Queue Service.
 
 ## Two Minute Demo
 
