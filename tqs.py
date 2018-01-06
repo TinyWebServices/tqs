@@ -5,6 +5,7 @@
 
 import os, re, sys, sqlite3, time, uuid
 
+from tornado.gen import coroutine, sleep
 from tornado.web import Application, RequestHandler, URLSpec
 from tornado import httpserver
 from tornado.ioloop import IOLoop, PeriodicCallback
@@ -75,6 +76,14 @@ DEFAULT_DELETE = False
 
 def validate_delete(v):
     return v in ("1", "true", "yes")
+
+
+DEFAULT_WAIT_TIME = 0
+MIN_WAIT_TIME = 0
+MAX_WAIT_TIME = 60
+
+def validate_wait_time(v):
+    return type(v) == int and v >= MIN_WAIT_TIME and v <= MAX_WAIT_TIME
 
 
 #
@@ -167,6 +176,7 @@ class QueueHandler(BaseHandler):
             if not self.queue:
                 self.send_error(404)
 
+    @coroutine
     def get(self, queue_name):
         with self.application.db:
             c = self.application.db.cursor()
@@ -175,18 +185,28 @@ class QueueHandler(BaseHandler):
             delete = self.get_argument("delete", DEFAULT_DELETE) # TODO Why do we have validate_delete?
             message_count = min(int(self.get_argument("message_count", DEFAULT_MESSAGE_COUNT)), MAX_MESSAGE_COUNT)
             visibility_timeout = min(int(self.get_argument("visibilty_timeout", DEFAULT_VISIBILITY_TIMEOUT)), MAX_VISIBILITY_TIMEOUT)
+            wait_time = min(int(self.get_argument("wait_time", DEFAULT_WAIT_TIME)), MAX_WAIT_TIME)
 
             # Select messages that we can return
-            now = time.time()
-            c.execute("select id from messages where queue_id = ? and lease_date is null and visible_date <= ? and expire_date >= ? order by create_date asc limit ?",
-                      (self.queue["id"], now, now, message_count))
-            rows = c.fetchall() # TODO Another case of this api being too smart
+
+            rows = []
+            deadline = time.time() + wait_time
+
+            while True:
+                now = time.time()
+                c.execute("select id from messages where queue_id = ? and lease_date is null and visible_date <= ? and expire_date >= ? order by create_date asc limit ?",
+                          (self.queue["id"], now, now, message_count))
+                rows = c.fetchall() # TODO Another case of this api being too smart
+                if now > deadline or rows:
+                    break
+                if wait_time != 0:
+                    yield sleep(0.25)
+
             if not rows:
                 self.write({"messages": []})
                 return
+
             message_ids = [row["id"] for row in rows]
-
-
 
             # Update the lease for these messages
             if not delete:
