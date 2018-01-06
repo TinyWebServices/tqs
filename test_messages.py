@@ -73,19 +73,21 @@ def test_max_number_of_messages_limit(http_client, base_url):
     response = yield http_client.fetch(base_url + "/queues", raise_error=False, method="POST", body=json.dumps({"name": "test"}))
     assert response.code == 200
     # Put a number of messages in it
-    for n in range(15):
+    for n in range(tqs.MAX_MESSAGE_COUNT+1):
         response = yield http_client.fetch(base_url + "/queues/test", raise_error=False, method="POST", body=json.dumps({"messages": [{"body": str(n)}]}))
         assert response.code == 200
     # Get messages
-    response = yield http_client.fetch(base_url + "/queues/test?message_count=20", raise_error=False, method="GET")
+    count = tqs.MAX_MESSAGE_COUNT+1
+    response = yield http_client.fetch(base_url + "/queues/test?message_count=%d" % count, raise_error=False, method="GET")
     assert response.code == 200
     j = json.loads(response.body.decode())
-    assert len(j["messages"]) == 10
+    assert len(j["messages"]) == tqs.MAX_MESSAGE_COUNT
     # Get remaining messages
-    response = yield http_client.fetch(base_url + "/queues/test?message_count=20", raise_error=False, method="GET")
+    count = tqs.MAX_MESSAGE_COUNT
+    response = yield http_client.fetch(base_url + "/queues/test?message_count=%d" % count, raise_error=False, method="GET")
     assert response.code == 200
     j = json.loads(response.body.decode())
-    assert len(j["messages"]) == 5
+    assert len(j["messages"]) == 1
 
 
 @pytest.mark.gen_test(timeout=45)
