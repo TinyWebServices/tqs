@@ -67,25 +67,6 @@ def test_queue_message_order(http_client, base_url):
         j = json.loads(response.body.decode())
         assert j["messages"][0]["body"] == str(n)
 
-@pytest.mark.gen_test
-def test_queue_insert_count(http_client, base_url):
-    # Create a queue
-    response = yield http_client.fetch(base_url + "/queues", raise_error=False, method="POST", body=json.dumps({"name": "test"}))
-    assert response.code == 200
-    # Put some messages in it
-    for n in range(7):
-        response = yield http_client.fetch(base_url + "/queues/test", raise_error=False, method="POST", body=json.dumps({"messages": [{"body": str(n)}]}))
-        assert response.code == 200
-    # Get queues and see if the count is good
-    response = yield http_client.fetch(base_url + "/queues", raise_error=False, method="GET")
-    assert response.code == 200
-    j = json.loads(response.body.decode())
-    assert "queues" in j
-    assert len(j["queues"]) == 1
-    assert j["queues"][0]["insert_count"] == 7
-
-
-
 
 @pytest.mark.gen_test(timeout=10)
 def test_authentication(http_client, base_url, app):
