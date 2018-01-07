@@ -39,14 +39,8 @@ def test_list_queues(http_client, base_url):
     assert "queues" in j
     assert len(j["queues"]) == 2
     assert j["queues"][0]["name"] == "foo"
-    assert j["queues"][0]["insert_count"] == 0
-    assert j["queues"][0]["delete_count"] == 0
-    assert j["queues"][0]["expire_count"] == 0
     assert "create_date" in j["queues"][0]
     assert j["queues"][1]["name"] == "bar"
-    assert j["queues"][1]["insert_count"] == 0
-    assert j["queues"][1]["delete_count"] == 0
-    assert j["queues"][1]["expire_count"] == 0
     assert "create_date" in j["queues"][1]
 
 
