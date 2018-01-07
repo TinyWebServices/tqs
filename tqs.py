@@ -114,6 +114,34 @@ class BaseHandler(RequestHandler):
         if self.application.api_token and self.request.headers.get("Authentication") != "token " + self.application.api_token:
             self.send_error(401)
 
+#
+# QueueStatisticsHandler
+#
+
+class QueueStatisticsHandler(BaseHandler):
+
+    def prepare(self):
+        super().prepare()
+        with self.application.db as db:
+            c = db.cursor()
+            c.execute("select id, name from queues where name = ?", [self.path_args[0]])
+            self.queue = c.fetchone()
+            if not self.queue:
+                self.send_error(404)
+
+    def count(self, cursor, query, params):
+        cursor.execute(query, params)
+        row = cursor.fetchone()
+        return row[0]
+
+    def get(self, queue_name):
+        now = time.time()
+        with self.application.db as db:
+            c = db.cursor()
+            visible = self.count(c, "select count(*) from messages where queue_id = ? and lease_date is null and visible_date <= ? and expire_date >= ?", [self.queue["id"], now, now])
+            delayed = self.count(c, "select count(*) from messages where queue_id = ? and lease_date is null and visible_date > ?", [self.queue["id"], now])
+            leased = self.count(c, "select count(*) from messages where queue_id = ? and lease_date is not null", [self.queue["id"]])
+            self.write({"visible": visible, "delayed": delayed, "leased": leased})
 
 #
 # QueuesHandler
@@ -126,15 +154,13 @@ class QueuesHandler(BaseHandler):
     #
 
     def get(self):
-        c = self.application.db.cursor()
-        c.execute("select name, create_date, insert_count, delete_count, expire_count from queues order by create_date")
-        queues = [{"name": queue["name"],
-                   "create_date": queue["create_date"],
-                   "insert_count": queue["insert_count"],
-                   "delete_count": queue["delete_count"],
-                   "expire_count": queue["expire_count"]}
-                  for queue in c.fetchall()]
-        self.write({"queues": queues})
+        with self.application.db as db:
+            c = db.cursor()
+            c.execute("select name, create_date, insert_count, delete_count, expire_count from queues order by create_date")
+            queues = [{"name": queue["name"],
+                       "create_date": queue["create_date"]}
+                      for queue in c.fetchall()]
+            self.write({"queues": queues})
 
     #
     # Create a new queue
@@ -289,8 +315,6 @@ class QueueHandler(BaseHandler):
                 db.execute("insert into messages (create_date, visible_date, expire_date, queue_id, body, type) values (?, ?, ?, ?, ?, ?)",
                            [now, now + delay, now + retention, self.queue["id"], message["body"], message.get("type", DEFAULT_BODY_TYPE)])
 
-            # Increment the count
-            db.execute("update queues set insert_count = insert_count + ? where id = ?", [len(data["messages"]), self.queue["id"]])
             self.write({}) # TODO What is useful to return here?
 
     #
@@ -340,6 +364,7 @@ class TinyQueueServiceApplication(Application):
             URLSpec(r"/version", VersionHandler),
             URLSpec(r"/queues", QueuesHandler),
             URLSpec(r"/queues/([a-zA-Z0-9](?:[a-zA-Z0-9-_]*[a-zA-Z0-9]+)*)/leases/([a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})", LeasesHandler),
+            URLSpec(r"/queues/([a-zA-Z0-9](?:[a-zA-Z0-9-_]*[a-zA-Z0-9]+)*)/statistics", QueueStatisticsHandler),
             URLSpec(r"/queues/([a-zA-Z0-9](?:[a-zA-Z0-9-_]*[a-zA-Z0-9]+)*)", QueueHandler),
         ]
         settings = {
