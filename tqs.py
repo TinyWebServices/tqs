@@ -364,8 +364,8 @@ class TinyQueueServiceApplication(Application):
             URLSpec(r"/version", VersionHandler),
             URLSpec(r"/queues", QueuesHandler),
             URLSpec(r"/queues/([a-zA-Z0-9](?:[a-zA-Z0-9-_]*[a-zA-Z0-9]+)*)/leases/([a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})", LeasesHandler),
-            URLSpec(r"/queues/([a-zA-Z0-9](?:[a-zA-Z0-9-_]*[a-zA-Z0-9]+)*)/statistics", QueueStatisticsHandler),
             URLSpec(r"/queues/([a-zA-Z0-9](?:[a-zA-Z0-9-_]*[a-zA-Z0-9]+)*)", QueueHandler),
+            URLSpec(r"/queues/([a-zA-Z0-9](?:[a-zA-Z0-9-_]*[a-zA-Z0-9]+)*)/statistics", QueueStatisticsHandler),
         ]
         settings = {
             "template_path": os.path.join(os.path.dirname(__file__), "templates"),
