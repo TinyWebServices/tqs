@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-import os, re, sys, sqlite3, time, uuid
+import datetime, os, re, sys, sqlite3, time, uuid
 
 from tornado.gen import coroutine, sleep
 from tornado.web import Application, RequestHandler, URLSpec
@@ -147,6 +147,10 @@ class QueueStatisticsHandler(BaseHandler):
 # QueuesHandler
 #
 
+def format_date(ts):
+    d = datetime.datetime.utcfromtimestamp(ts)
+    return d.isoformat() + "Z"
+
 class QueuesHandler(BaseHandler):
 
     #
@@ -158,7 +162,7 @@ class QueuesHandler(BaseHandler):
             c = db.cursor()
             c.execute("select name, create_date, insert_count, delete_count, expire_count from queues order by create_date")
             queues = [{"name": queue["name"],
-                       "create_date": queue["create_date"]}
+                       "create_date": format_date(queue["create_date"])}
                       for queue in c.fetchall()]
             self.write({"queues": queues})
 
@@ -245,21 +249,21 @@ class QueueHandler(BaseHandler):
             if not delete:
                 c.execute("select id, create_date, body, type, lease_date, expire_date, lease_uuid, lease_timeout from messages where id in (%s)" % ",".join("?" * len(message_ids)), message_ids)
                 messages = [{"id": message["id"],
-                             "create_date": message["create_date"],
-                             "visible_date": message["create_date"],
-                             "expire_date": message["expire_date"],
+                             "create_date": format_date(message["create_date"]),
+                             "visible_date": format_date(message["create_date"]),
+                             "expire_date": format_date(message["expire_date"]),
                              "body": message["body"],
                              "type": message["type"],
-                             "lease_date": message["lease_date"],
+                             "lease_date": format_date(message["lease_date"]),
                              "lease_uuid": message["lease_uuid"],
                              "lease_timeout": message["lease_timeout"]}
                             for message in c.fetchall()]
             else:
                 c.execute("select id, create_date, body, type, expire_date from messages where id in (%s)" % ",".join("?" * len(message_ids)), message_ids)
                 messages = [{"id": message["id"],
-                             "create_date": message["create_date"],
-                             "visible_date": message["create_date"],
-                             "expire_date": message["expire_date"],
+                             "create_date": format_date(message["create_date"]),
+                             "visible_date": format_date(message["create_date"]),
+                             "expire_date": format_date(message["expire_date"]),
                              "body": message["body"],
                              "type": message["type"]}
                             for message in c.fetchall()]
