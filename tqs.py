@@ -68,8 +68,16 @@ def validate_message_body(v):
 DEFAULT_BODY_TYPE = "text/plain"
 VALID_BODY_TYPES = ["text/plain", "application/json", "application/octet-stream"]
 
+
 def validate_message_type(v):
     return type(v) == str and v in VALID_BODY_TYPES
+
+DEFAULT_MESSAGE_PRIORITY = 50
+MIN_MESSAGE_PRIORITY = 0
+MAX_MESSAGE_PRIORITY = 100
+
+def validate_message_priority(v):
+    return type(v) == int and v >= MIN_MESSAGE_PRIORITY and v <= MAX_MESSAGE_PRIORITY
 
 
 DEFAULT_DELETE = False
@@ -224,9 +232,10 @@ class QueueHandler(BaseHandler):
 
             while True:
                 now = time.time()
-                c.execute("select id from messages where queue_id = ? and lease_date is null and visible_date <= ? and expire_date >= ? order by create_date asc limit ?",
+                c.execute("select id from messages where queue_id = ? and lease_date is null and visible_date <= ? and expire_date >= ? order by priority, create_date limit ?",
                           (self.queue["id"], now, now, message_count))
                 rows = c.fetchall() # TODO Another case of this api being too smart
+
                 if now > deadline or rows:
                     break
                 if wait_time != 0:
@@ -247,25 +256,27 @@ class QueueHandler(BaseHandler):
 
             # Return messages
             if not delete:
-                c.execute("select id, create_date, body, type, lease_date, expire_date, lease_uuid, lease_timeout from messages where id in (%s)" % ",".join("?" * len(message_ids)), message_ids)
+                c.execute("select id, create_date, body, type, priority, lease_date, expire_date, lease_uuid, lease_timeout from messages where id in (%s)" % ",".join("?" * len(message_ids)), message_ids)
                 messages = [{"id": message["id"],
                              "create_date": format_date(message["create_date"]),
                              "visible_date": format_date(message["create_date"]),
                              "expire_date": format_date(message["expire_date"]),
                              "body": message["body"],
                              "type": message["type"],
+                             "priority": message["priority"],
                              "lease_date": format_date(message["lease_date"]),
                              "lease_uuid": message["lease_uuid"],
                              "lease_timeout": message["lease_timeout"]}
                             for message in c.fetchall()]
             else:
-                c.execute("select id, create_date, body, type, expire_date from messages where id in (%s)" % ",".join("?" * len(message_ids)), message_ids)
+                c.execute("select id, create_date, body, type, priority, expire_date from messages where id in (%s)" % ",".join("?" * len(message_ids)), message_ids)
                 messages = [{"id": message["id"],
                              "create_date": format_date(message["create_date"]),
                              "visible_date": format_date(message["create_date"]),
                              "expire_date": format_date(message["expire_date"]),
                              "body": message["body"],
-                             "type": message["type"]}
+                             "type": message["type"],
+                             "priority": message["priority"]}
                             for message in c.fetchall()]
                 c.execute("delete from messages where id in (%s)" % ",".join("?" * len(message_ids)), message_ids)
 
@@ -292,14 +303,16 @@ class QueueHandler(BaseHandler):
                     if "body" not in message or type(message["body"]) != str or not validate_message_body(message["body"]):
                         self.send_error(400) # TODO Explain
                         return
-                    if "type" in message:
-                        if type(message["type"]) != str or not validate_message_type(message["type"]):
-                            self.send_error(400) # TODO Explain
-                            return
+                    if "type" in message and not validate_message_type(message["type"]):
+                        self.send_error(400) # TODO Explain
+                        return
                     if "delay" in message and not validate_message_delay(message["delay"]):
                         self.send_error(400) # TODO Explain
                         return
                     if "retention" in message and not validate_message_retention(message["retention"]):
+                        self.send_error(400) # TODO Explain
+                        return
+                    if "priority" in message and not validate_message_priority(message["priority"]):
                         self.send_error(400) # TODO Explain
                         return
             except Exception as e:
@@ -316,8 +329,9 @@ class QueueHandler(BaseHandler):
                 now = time.time()
                 delay = message.get("delay", DEFAULT_MESSAGE_DELAY)
                 retention = message.get("retention", DEFAULT_MESSAGE_RETENTION)
-                db.execute("insert into messages (create_date, visible_date, expire_date, queue_id, body, type) values (?, ?, ?, ?, ?, ?)",
-                           [now, now + delay, now + retention, self.queue["id"], message["body"], message.get("type", DEFAULT_BODY_TYPE)])
+                priority = message.get("priority", DEFAULT_MESSAGE_PRIORITY)
+                db.execute("insert into messages (create_date, visible_date, expire_date, queue_id, body, type, priority) values (?, ?, ?, ?, ?, ?, ?)",
+                           [now, now + delay, now + retention, self.queue["id"], message["body"], message.get("type", DEFAULT_BODY_TYPE), priority])
 
             self.write({}) # TODO What is useful to return here?
 

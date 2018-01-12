@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS messages (
   expire_date REAL NOT NULL,
   body TEXT not null,
   type TEXT not null,
+  priority int NOT NULL,
   lease_date REAL,
   lease_uuid TEXT UNIQUE,
   lease_timeout INTEGER,
@@ -37,6 +38,7 @@ CREATE INDEX IF NOT EXISTS messages_queue_id ON messages (queue_id);
 CREATE INDEX IF NOT EXISTS messages_create_date ON messages (create_date);
 CREATE INDEX IF NOT EXISTS messages_lease_date ON messages (lease_date);
 CREATE UNIQUE INDEX IF NOT EXISTS messages_lease_uuid ON messages (lease_uuid);
-CREATE INDEX IF NOT EXISTS messages_queue_id_lease_date_create_date ON messages (queue_id, lease_date, create_date);
+CREATE INDEX IF NOT EXISTS messages_queue_id_lease_date_create_date ON messages (queue_id, lease_date, create_date); -- TODO Still needed?
+CREATE INDEX IF NOT EXISTS messages_queue_id_lease_date_priority_create_date ON messages (queue_id, lease_date, priority, create_date);
 CREATE INDEX IF NOT EXISTS messages_queue_id_lease_uuid ON messages (queue_id, lease_uuid);
 

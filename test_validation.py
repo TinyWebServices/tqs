@@ -76,3 +76,20 @@ def test_validate_message_body():
     assert tqs.validate_message_body(10.0) == False
     assert tqs.validate_message_body([]) == False
     assert tqs.validate_message_body({}) == False
+
+def test_validate_message_type():
+    for message_type in (None, "", "foo", 1, 3.14, [], {}):
+        assert tqs.validate_message_type(message_type) == False
+    for message_type in tqs.VALID_BODY_TYPES:
+        assert tqs.validate_message_type(message_type) == True
+
+def test_validate_message_piority():
+    assert tqs.validate_message_priority("5") == False
+    assert tqs.validate_message_priority(5.0) == False
+    assert tqs.validate_message_priority(tqs.MIN_MESSAGE_PRIORITY) == True
+    assert tqs.validate_message_priority(tqs.MIN_MESSAGE_PRIORITY - 1) == False
+    assert tqs.validate_message_priority(tqs.MAX_MESSAGE_PRIORITY) == True
+    assert tqs.validate_message_priority(tqs.MAX_MESSAGE_PRIORITY + 1) == False
+    assert tqs.validate_message_priority(tqs.DEFAULT_MESSAGE_PRIORITY) == True
+    assert tqs.validate_message_priority(tqs.DEFAULT_MESSAGE_PRIORITY+1) == True
+    assert tqs.validate_message_priority(-5) == False
