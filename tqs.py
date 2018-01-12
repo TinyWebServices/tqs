@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-import datetime, os, re, sys, sqlite3, time, uuid
+import datetime, json, os, re, sys, sqlite3, time, uuid
 
 from tornado.gen import coroutine, sleep
 from tornado.web import Application, RequestHandler, URLSpec
@@ -123,6 +123,43 @@ class BaseHandler(RequestHandler):
             self.send_error(401)
 
 #
+# StatisticsHandler
+#
+
+
+def queue_statistics(db, queue_id):
+    def count(db, query, params):
+        c = db.cursor()
+        c.execute(query, params)
+        row = c.fetchone()
+        return row[0]
+    now = time.time()
+    return {
+        "visible": count(db, "select count(*) from messages where queue_id = ? and lease_date is null and visible_date <= ? and expire_date >= ?", [queue_id, now, now]),
+        "delayed": count(db, "select count(*) from messages where queue_id = ? and lease_date is null and visible_date > ?", [queue_id, now]),
+        "leased": count(db, "select count(*) from messages where queue_id = ? and lease_date is not null", [queue_id]),
+    }
+
+class StatisticsHandler(BaseHandler):
+
+    def get(self):
+        with self.application.db as db:
+            c = db.cursor()
+            c.execute("select id, name from queues")
+            if self.get_argument("format", DEFAULT_DELETE) == "telegraf":
+                statistics = []
+                for queue in c.fetchall():
+                    d = queue_statistics(db, queue["id"])
+                    d["service"] = queue["name"]
+                    statistics.append(d)
+                self.set_header("Content-Type", "application/json")
+                self.write(json.dumps(statistics))
+            else:
+                statistics = {queue["name"]: queue_statistics(db, queue["id"]) for queue in c.fetchall()}
+                self.write(statistics)
+
+
+#
 # QueueStatisticsHandler
 #
 
@@ -137,19 +174,11 @@ class QueueStatisticsHandler(BaseHandler):
             if not self.queue:
                 self.send_error(404)
 
-    def count(self, cursor, query, params):
-        cursor.execute(query, params)
-        row = cursor.fetchone()
-        return row[0]
-
     def get(self, queue_name):
         now = time.time()
         with self.application.db as db:
-            c = db.cursor()
-            visible = self.count(c, "select count(*) from messages where queue_id = ? and lease_date is null and visible_date <= ? and expire_date >= ?", [self.queue["id"], now, now])
-            delayed = self.count(c, "select count(*) from messages where queue_id = ? and lease_date is null and visible_date > ?", [self.queue["id"], now])
-            leased = self.count(c, "select count(*) from messages where queue_id = ? and lease_date is not null", [self.queue["id"]])
-            self.write({"visible": visible, "delayed": delayed, "leased": leased})
+            statistics = queue_statistics(db, self.queue["id"])
+            self.write(statistics)
 
 #
 # QueuesHandler
@@ -380,6 +409,7 @@ class TinyQueueServiceApplication(Application):
             # TODO Make regexps below more strict
             URLSpec(r"/", HomeHandler),
             URLSpec(r"/version", VersionHandler),
+            URLSpec(r"/statistics", StatisticsHandler),
             URLSpec(r"/queues", QueuesHandler),
             URLSpec(r"/queues/([^/]+)/leases/([^/]+)", LeasesHandler),
             URLSpec(r"/queues/([^/]+)", QueueHandler),
