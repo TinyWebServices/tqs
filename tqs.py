@@ -451,7 +451,7 @@ class ExpireMessagesCallback:
 
 
 define("port", default=os.getenv("TQS_PORT", "8080"), help="run on the given port", type=int)
-define("database", default=os.getenv("TQS_DATABASE", "/data/tqs/tqs.sqlite3"), help="database path", type=str)
+define("database", default=os.getenv("TQS_DATABASE", "/data/tqs.sqlite3"), help="database path", type=str)
 define("api-token", default=os.getenv("TQS_API_TOKEN", None), help="api token", type=str)
 
 
