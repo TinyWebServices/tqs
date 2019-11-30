@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-import datetime, json, os, re, sys, sqlite3, time, uuid
+import datetime, json, logging, os, re, sys, sqlite3, time, uuid
 
 from tornado.gen import coroutine, sleep
 from tornado.web import Application, RequestHandler, URLSpec
@@ -457,6 +457,9 @@ define("api-token", default=os.getenv("TQS_API_TOKEN", None), help="api token", 
 
 if __name__ == "__main__":
     parse_command_line()
+
+    # TODO Make this configurable
+    logging.getLogger('tornado.access').disabled = True
 
     db = sqlite3.connect(options.database)
     db.row_factory = sqlite3.Row
