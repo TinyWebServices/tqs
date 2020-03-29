@@ -1,10 +1,8 @@
 # Tiny Queue Service (Server)
 
-*Stefan Arentz, December 2017*
+_Stefan Arentz, December 2017_
 
 [![Build Status](https://travis-ci.org/st3fan/tqs-server.svg?branch=master)](https://travis-ci.org/st3fan/tqs-server) [![codecov](https://codecov.io/gh/st3fan/tqs-server/branch/master/graph/badge.svg)](https://codecov.io/gh/st3fan/tqs-server) [![Lintly](https://lintly.com/gh/st3fan/tqs-server/badge.svg)](https://lintly.com/gh/st3fan/tqs-server/)
-
-
 
 Tiny Queue Service (TQS) is a small pragmatic queue service with
 modest performance that you can self host.
@@ -12,12 +10,12 @@ modest performance that you can self host.
 If the following sounds good to you then this project may be
 compatible with your needs:
 
-* Very easy to deploy via Docker
-* Most operations take a few milliseconds on modest hardware, so a single instance can usually handle hundreds of queue operations per second
-* Simple REST API that lets you GET and POST messages
-* (Optional) Simple authentication via pre configured API keys
-* Zero configuration. Run and go.
-* No broker topology, no redundancy, no enterprise features.
+- Very easy to deploy via Docker
+- Most operations take a few milliseconds on modest hardware, so a single instance can usually handle hundreds of queue operations per second
+- Simple REST API that lets you GET and POST messages
+- (Optional) Simple authentication via pre configured API keys
+- Zero configuration. Run and go.
+- No broker topology, no redundancy, no enterprise features.
 
 This project was inspired by Redis and Amazon's Simple Queue Service.
 
@@ -76,6 +74,14 @@ python tqs.py --logging=debug
 
 Tornado auto reloads the code on change so you can hack away and see your changes on save.
 
+### Running tests
+
+```
+source env/bin/activate
+pip install pytest pytest-tornasync
+pytest
+```
+
 ## Design Notes
 
 This service is built in Python on top of Tornado and SQLite. Tornado
@@ -99,4 +105,3 @@ These tests were run on a small Digital Ocean instance (512 MB).
 Note that I do not have numbers to compare against. I simply do not
 care about that. This project was created because I was unable to find
 something simple to fit my needs and not to compete with other solutions.
-
