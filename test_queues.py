@@ -8,32 +8,29 @@ import pytest
 from test_api import app
 
 
-@pytest.mark.gen_test
-def test_create_queue(http_client, base_url):
-    response = yield http_client.fetch(base_url + "/queues", raise_error=False, method="POST", body=json.dumps({"name": "test"}))
+async def test_create_queue(http_server_client):
+    response = await http_server_client.fetch("/queues", raise_error=False, method="POST", body=json.dumps({"name": "test"}))
     assert response.code == 200
-    response = yield http_client.fetch(base_url + "/queues", raise_error=False, method="POST", body=json.dumps({"name": "test"}))
+    response = await http_server_client.fetch("/queues", raise_error=False, method="POST", body=json.dumps({"name": "test"}))
     assert response.code == 409
 
 
-@pytest.mark.gen_test
-def test_create_queue_validation(http_client, base_url):
+async def test_create_queue_validation(http_server_client):
     for body in ("", "cheese", "123", "{}", "[]", '{"name": 42}', '{"name": []}', '{"name": {}}', '{"name": null}', '{"name": ""}', "null"):
-        response = yield http_client.fetch(base_url + "/queues", raise_error=False, method="POST", body=body)
+        response = await http_server_client.fetch("/queues", raise_error=False, method="POST", body=body)
         assert response.code == 400
     for queue_name in ("", "-cheese-", "cheese-", "-cheese", "Foo%$"):
-        response = yield http_client.fetch(base_url + "/queues", raise_error=False, method="POST", body=json.dumps({"name": queue_name}))
+        response = await http_server_client.fetch("/queues", raise_error=False, method="POST", body=json.dumps({"name": queue_name}))
         assert response.code == 400
 
 
-@pytest.mark.gen_test
-def test_list_queues(http_client, base_url):
+async def test_list_queues(http_server_client):
     # Create two queues
     for queue_name in ("foo", "bar"):
-        response = yield http_client.fetch(base_url + "/queues", raise_error=False, method="POST", body=json.dumps({"name": queue_name}))
+        response = await http_server_client.fetch("/queues", raise_error=False, method="POST", body=json.dumps({"name": queue_name}))
         assert response.code == 200
     # Make sure we have two queues
-    response = yield http_client.fetch(base_url + "/queues", raise_error=False, method="GET")
+    response = await http_server_client.fetch("/queues", raise_error=False, method="GET")
     assert response.code == 200
     j = json.loads(response.body.decode())
     assert "queues" in j
@@ -44,32 +41,30 @@ def test_list_queues(http_client, base_url):
     assert "create_date" in j["queues"][1]
 
 
-@pytest.mark.gen_test
-def test_delete_queue(http_client, base_url):
+async def test_delete_queue(http_server_client):
     # Create a queue
-    response = yield http_client.fetch(base_url + "/queues", raise_error=False, method="POST", body=json.dumps({"name": "test"}))
+    response = await http_server_client.fetch("/queues", raise_error=False, method="POST", body=json.dumps({"name": "test"}))
     assert response.code == 200
     # Make sure we have one queue
-    response = yield http_client.fetch(base_url + "/queues", raise_error=False, method="GET")
+    response = await http_server_client.fetch("/queues", raise_error=False, method="GET")
     assert response.code == 200
     j = json.loads(response.body.decode())
     assert "queues" in j
     assert len(j["queues"]) == 1
     # Delete the queue
-    response = yield http_client.fetch(base_url + "/queues/test", raise_error=False, method="DELETE")
+    response = await http_server_client.fetch("/queues/test", raise_error=False, method="DELETE")
     assert response.code == 200
     # Make sure we have no queues
-    response = yield http_client.fetch(base_url + "/queues", raise_error=False, method="GET")
+    response = await http_server_client.fetch("/queues", raise_error=False, method="GET")
     assert response.code == 200
     j = json.loads(response.body.decode())
     assert "queues" in j
     assert len(j["queues"]) == 0
     # Try to delete it again
-    response = yield http_client.fetch(base_url + "/queues/test", raise_error=False, method="DELETE")
+    response = await http_server_client.fetch("/queues/test", raise_error=False, method="DELETE")
     assert response.code == 404
 
 
-@pytest.mark.gen_test
-def test_delete_queue_404(http_client, base_url):
-    response = yield http_client.fetch(base_url + "/queues/doesnotexist", raise_error=False, method="DELETE")
+async def test_delete_queue_404(http_server_client):
+    response = await http_server_client.fetch("/queues/doesnotexist", raise_error=False, method="DELETE")
     assert response.code == 404

@@ -30,15 +30,13 @@ def app(tmpdir):
 # Endpoint tests
 #
 
-@pytest.mark.gen_test
-def test_home(http_client, base_url):
-    response = yield http_client.fetch(base_url + "/")
+async def test_home(http_server_client):
+    response = await http_server_client.fetch("/")
     assert response.code == 200
 
 
-@pytest.mark.gen_test
-def test_version(http_client, base_url):
-    response = yield http_client.fetch(base_url + "/version")
+async def test_version(http_server_client):
+    response = await http_server_client.fetch("/version")
     assert response.code == 200
     j = json.loads(response.body.decode())
     for key in ("tag", "branch", "commit"):
@@ -51,42 +49,40 @@ def test_version(http_client, base_url):
 # Make sure message order is maintained.
 #
 
-@pytest.mark.gen_test
-def test_queue_message_order(http_client, base_url):
+async def test_queue_message_order(http_server_client):
     # Create a queue
-    response = yield http_client.fetch(base_url + "/queues", raise_error=False, method="POST", body=json.dumps({"name": "test"}))
+    response = await http_server_client.fetch("/queues", raise_error=False, method="POST", body=json.dumps({"name": "test"}))
     assert response.code == 200
     # Put some message in it
     for n in range(7):
-        response = yield http_client.fetch(base_url + "/queues/test", raise_error=False, method="POST", body=json.dumps({"messages": [{"body": str(n)}]}))
+        response = await http_server_client.fetch("/queues/test", raise_error=False, method="POST", body=json.dumps({"messages": [{"body": str(n)}]}))
         assert response.code == 200
     # Get all messages, see if they come back in same order
     for n in range(7):
-        response = yield http_client.fetch(base_url + "/queues/test", raise_error=False, method="GET")
+        response = await http_server_client.fetch("/queues/test", raise_error=False, method="GET")
         assert response.code == 200
         j = json.loads(response.body.decode())
         assert j["messages"][0]["body"] == str(n)
 
 
-@pytest.mark.gen_test(timeout=10)
-def test_authentication(http_client, base_url, app):
+async def test_authentication(http_server_client, app):
     """Make sure all endpoints are returning a 401"""
     app.api_token = "s3cr3t"
     # GET /queues
-    response = yield http_client.fetch(base_url + "/queues", raise_error=False, method="GET")
+    response = await http_server_client.fetch("/queues", raise_error=False, method="GET")
     assert response.code == 401
     # POST /queues
-    response = yield http_client.fetch(base_url + "/queues", raise_error=False, method="POST", body=json.dumps({"name": "test"}))
+    response = await http_server_client.fetch("/queues", raise_error=False, method="POST", body=json.dumps({"name": "test"}))
     assert response.code == 401
     # GET /queues/test
-    response = yield http_client.fetch(base_url + "/queues/test", raise_error=False, method="GET")
+    response = await http_server_client.fetch("/queues/test", raise_error=False, method="GET")
     assert response.code == 401
     # DELETE /queues/test
-    response = yield http_client.fetch(base_url + "/queues/test", raise_error=False, method="DELETE")
+    response = await http_server_client.fetch("/queues/test", raise_error=False, method="DELETE")
     assert response.code == 401
     # POST /queues/test
-    response = yield http_client.fetch(base_url + "/queues/test", raise_error=False, method="POST", body=json.dumps({"messages": [{"body": 42}]}))
+    response = await http_server_client.fetch("/queues/test", raise_error=False, method="POST", body=json.dumps({"messages": [{"body": 42}]}))
     assert response.code == 401
     # DELETE /queues/test/leases/36f4d210-a943-4599-b530-7f6ac3e7612e
-    response = yield http_client.fetch(base_url + "/queues/test", raise_error=False, method="POST", body=json.dumps({"messages": [{"body": 42}]}))
+    response = await http_server_client.fetch("/queues/test", raise_error=False, method="POST", body=json.dumps({"messages": [{"body": 42}]}))
     assert response.code == 401
