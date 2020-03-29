@@ -2,7 +2,7 @@
 
 _Stefan Arentz, December 2017_
 
-[![Build Status](https://travis-ci.org/st3fan/tqs-server.svg?branch=master)](https://travis-ci.org/st3fan/tqs-server) [![codecov](https://codecov.io/gh/st3fan/tqs-server/branch/master/graph/badge.svg)](https://codecov.io/gh/st3fan/tqs-server) [![Lintly](https://lintly.com/gh/st3fan/tqs-server/badge.svg)](https://lintly.com/gh/st3fan/tqs-server/)
+![Build & Test](https://github.com/TinyWebServices/tqs-server/workflows/.github/workflows/main.yml/badge.svg) ![Publish](https://github.com/TinyWebServices/tqs-server/workflows/.github/workflows/publish.yml/badge.svg) [![codecov](https://codecov.io/gh/st3fan/tqs-server/branch/master/graph/badge.svg)](https://codecov.io/gh/st3fan/tqs-server) [![Lintly](https://lintly.com/gh/st3fan/tqs-server/badge.svg)](https://lintly.com/gh/st3fan/tqs-server/)
 
 Tiny Queue Service (TQS) is a small pragmatic queue service with
 modest performance that you can self host.
