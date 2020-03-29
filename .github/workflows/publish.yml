@@ -16,3 +16,7 @@ jobs:
         run: docker build . --file Dockerfile --tag tinywebservices/tqs:${{steps.vars.outputs.tag}}
       - name: Push the tagged Docker image
         run: docker push tinywebservices/tqs:${{steps.vars.outputs.tag}}
+      - name: Build the latest Docker image
+        run: docker build . --file Dockerfile --tag tinywebservices/tqs:latest
+      - name: Push the latest Docker image
+        run: docker push tinywebservices/tqs:latest
